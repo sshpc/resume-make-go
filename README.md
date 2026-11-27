@@ -1,7 +1,7 @@
 # 简历工具 · Resume Tool
 
-[![CI](https://github.com/sshpc/resume-make-go/actions/workflows/ci.yml/badge.svg)](https://github.com/sshpc/resume-make-go/actions/workflows/ci.yml)
-[![Release](https://github.com/sshpc/resume-make-go/actions/workflows/release.yml/badge.svg)](https://github.com/sshpc/resume-make-go/actions/workflows/release.yml)
+[![Build](https://github.com/sshpc/resume-make-go/actions/workflows/build.yml/badge.svg)](https://github.com/sshpc/resume-make-go/actions/workflows/build.yml)
+[![Release](https://img.shields.io/github/v/release/sshpc/resume-make-go?display_name=tag)](https://github.com/sshpc/resume-make-go/releases)
 [![Go](https://img.shields.io/badge/Go-1.21%2B-00ADD8?logo=go&logoColor=white)](https://go.dev/)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
@@ -99,12 +99,14 @@ CGO_ENABLED=0 GOOS=linux GOARCH=amd64 \
 
 ### 方式三：GitHub Actions 自动编译
 
-仓库里带了两条工作流：
+仓库里带了一条工作流 [`.github/workflows/build.yml`](.github/workflows/build.yml)：
 
-| 工作流 | 触发方式 | 作用 |
-| --- | --- | --- |
-| [`.github/workflows/ci.yml`](.github/workflows/ci.yml) | 推送到 `main` / 提 PR / 手动 | 在 Ubuntu、Windows、macOS 上跑 `go vet`、`go build`、`gofmt` 检查 |
-| [`.github/workflows/release.yml`](.github/workflows/release.yml) | 推 `v*` 标签 / 手动 | 交叉编译 6 个平台的可执行文件，打 zip 后发布到 Releases |
+| 触发方式 | 作用 |
+| --- | --- |
+| 推送到 `main` | 跑 `gofmt` / `go vet`，并交叉编译 6 个平台的可执行文件，产物在本次运行记录的 **Artifacts** 里可下载 |
+| 提 Pull Request | 只跑检查，产物不打 |
+| 手动触发（Actions 页面 → Run workflow） | 同「推送到 main」 |
+| 推 `v*` 标签 | 在以上基础上**自动创建 Release**，把 6 个平台的 zip 和 sha256 校验文件挂上去 |
 
 发一个新版本的完整流程：
 
@@ -113,7 +115,7 @@ git tag v1.1.0
 git push origin v1.1.0
 ```
 
-等 Actions 跑完，Releases 页面就会出现带全部平台产物的新版本。只想临时拿构建产物、不发版时，在 Actions 页面手动触发 `Release` 工作流即可，产物在运行记录的 Artifacts 里。
+等 Actions 跑完，Releases 页面就会出现带全部平台产物的新版本；想提前验证 CI 是否正常，先手动触发一次 `Build` 工作流即可。
 
 ---
 
@@ -128,8 +130,7 @@ git push origin v1.1.0
 ├─ go.mod
 ├─ build.bat               Windows 一键编译（支持 all 参数交叉编译）
 ├─ .github/workflows/
-│  ├─ ci.yml               三平台编译检查
-│  └─ release.yml          多平台产物 + 自动发版
+│  └─ build.yml            多平台编译 + 打 tag 自动发版
 └─ web/                    前端（embed 进可执行文件）
    ├─ index.html
    ├─ style.css            编辑器 / A4 纸面 / 打印样式
