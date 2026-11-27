@@ -20,19 +20,20 @@
 
 ## 一、下载即用
 
-到 [**Releases**](https://github.com/sshpc/resume-make-go/releases) 下载对应平台的压缩包，解压后直接运行，不需要安装 Go 或任何依赖。
+到 [**Releases**](https://github.com/sshpc/resume-make-go/releases) 下载对应平台的压缩包，解压后直接运行，不需要安装 Go 或任何依赖。每个压缩包旁边都配有同名的 `.sha256` 校验文件，需要时可以用 `sha256sum -c` 验证下载完整性。
 
-| 平台 | 文件 | 说明 |
+| 平台 | 压缩包 | 解压后 |
 | --- | --- | --- |
-| Windows x64 | `resume-tool-windows-amd64.exe` | 绝大多数 Windows 电脑用这个 |
-| Windows ARM64 | `resume-tool-windows-arm64.exe` | 骁龙 X / Surface Pro X 等 ARM 机型 |
-| Linux x64 | `resume-tool-linux-amd64` | 先 `chmod +x` 再运行 |
-| Linux ARM64 | `resume-tool-linux-arm64` | 树莓派、ARM 服务器 |
-| macOS Intel | `resume-tool-darwin-amd64` | 先 `chmod +x` 再运行 |
-| macOS Apple Silicon | `resume-tool-darwin-arm64` | M 系列芯片，先 `chmod +x` 再运行 |
+| Windows x64 | `resume-tool-windows-amd64.exe.zip` | `resume-tool-windows-amd64.exe` |
+| Windows ARM64 | `resume-tool-windows-arm64.exe.zip` | `resume-tool-windows-arm64.exe` |
+| Linux x64 | `resume-tool-linux-amd64.zip` | `resume-tool-linux-amd64` |
+| Linux ARM64 | `resume-tool-linux-arm64.zip` | `resume-tool-linux-arm64` |
+| macOS Intel | `resume-tool-darwin-amd64.zip` | `resume-tool-darwin-amd64` |
+| macOS Apple Silicon | `resume-tool-darwin-arm64.zip` | `resume-tool-darwin-arm64` |
 
-> macOS / Linux 上首次运行若提示「无法打开，因为来自身份不明的开发者」，在终端里执行
-> `xattr -d com.apple.quarantine ./resume-tool-darwin-arm64`（macOS）即可，或用 `./resume-tool-linux-amd64` 直接跑。
+> Linux / macOS 上解压后先 `chmod +x` 再运行。macOS 若提示「无法打开，因为来自身份不明的开发者」，在终端里执行
+> `xattr -d com.apple.quarantine ./resume-tool-darwin-arm64` 即可。
+> 自己需要改个名字的话，重命名可执行文件完全不影响使用。
 
 Windows 双击 `resume-tool-windows-amd64.exe`，程序会：
 
