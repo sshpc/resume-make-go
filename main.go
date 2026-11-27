@@ -1,7 +1,7 @@
-// 简历工坊 · ResumeMaker
+// 简历工具 · Resume Tool
 //
-// 单文件本地服务：双击 exe 启动 127.0.0.1 上的 HTTP 服务并自动打开浏览器。
-// 所有前端资源通过 go:embed 打进 exe，数据保存在本机，不联网。
+// 单文件本地服务：双击可执行文件即启动 127.0.0.1 上的 HTTP 服务并自动打开浏览器。
+// 所有前端资源通过 go:embed 打进可执行文件，数据保存在本机，不联网。
 package main
 
 import (
@@ -27,11 +27,10 @@ import (
 	"runtime"
 	"strings"
 	"sync"
-	"syscall"
 	"time"
 )
 
-const version = "1.0.0"
+const version = "1.1.0"
 
 //go:embed web
 var embeddedWeb embed.FS
@@ -47,12 +46,12 @@ var (
 
 func main() {
 	log.SetFlags(log.Ltime)
-	log.SetPrefix("[简历工坊] ")
+	log.SetPrefix("[简历工具] ")
 	initConsole()
 
 	port := flag.Int("port", 0, "监听端口，0 表示随机")
 	noBrowser := flag.Bool("no-browser", false, "不自动打开浏览器")
-	dataDir := flag.String("data", "", "数据目录（默认 %APPDATA%\\ResumeMaker）")
+	dataDir := flag.String("data", "", "数据目录（默认 %APPDATA%\\ResumeTool）")
 	flag.Parse()
 
 	if *dataDir != "" {
@@ -69,7 +68,7 @@ func main() {
 	if *port == 0 {
 		if url, ok := runningInstance(); ok {
 			fmt.Println()
-			fmt.Println("  简历工坊已经在运行，正在切换到已打开的窗口。")
+			fmt.Println("  简历工具已经在运行，正在切换到已打开的窗口。")
 			fmt.Println("  地址：" + url)
 			fmt.Println()
 			if !*noBrowser {
@@ -170,23 +169,12 @@ func shutdown(code int) {
 }
 
 // initConsole 把控制台代码页切到 UTF-8，否则双击运行时中文横幅是乱码。
-func initConsole() {
-	if runtime.GOOS != "windows" {
-		return
-	}
-	kernel32 := syscall.NewLazyDLL("kernel32.dll")
-	if p := kernel32.NewProc("SetConsoleOutputCP"); p.Find() == nil {
-		_, _, _ = p.Call(uintptr(65001))
-	}
-	if p := kernel32.NewProc("SetConsoleCP"); p.Find() == nil {
-		_, _, _ = p.Call(uintptr(65001))
-	}
-}
+// 具体实现按平台分文件：console_windows.go / console_other.go。
 
 func printBanner() {
 	fmt.Println()
 	fmt.Println("  ══════════════════════════════════════")
-	fmt.Println("   简 历 工 坊  ·  ResumeMaker  v" + version)
+	fmt.Println("   简 历 工 具  ·  Resume Tool  v" + version)
 	fmt.Println("  ══════════════════════════════════════")
 	fmt.Println()
 	fmt.Println("   访问地址 : " + baseURL)
@@ -217,14 +205,27 @@ func randomToken() string {
 
 /* ------------------------------ 路径 ------------------------------ */
 
+// defaultStoreDir 返回数据目录。老版本的目录名是 ResumeMaker，
+// 这里做一次平滑迁移：新目录不存在但老目录存在时，沿用老目录，避免用户丢存档。
 func defaultStoreDir() string {
+	var base string
 	if appData := os.Getenv("APPDATA"); appData != "" {
-		return filepath.Join(appData, "ResumeMaker")
+		base = appData
+	} else if xdg := os.Getenv("XDG_CONFIG_HOME"); xdg != "" {
+		base = xdg
+	} else if home, err := os.UserHomeDir(); err == nil {
+		base = filepath.Join(home, ".config")
+	} else {
+		base = "."
 	}
-	if exe, err := os.Executable(); err == nil {
-		return filepath.Join(filepath.Dir(exe), "data")
+	fresh := filepath.Join(base, "ResumeTool")
+	legacy := filepath.Join(base, "ResumeMaker")
+	if _, err := os.Stat(fresh); err != nil {
+		if st, lerr := os.Stat(legacy); lerr == nil && st.IsDir() {
+			return legacy
+		}
 	}
-	return "data"
+	return fresh
 }
 
 func resumeFile() string { return filepath.Join(storeDir, "resume.json") }
@@ -253,16 +254,25 @@ func pickExportDir() string {
 		seen[p] = true
 		bases = append(bases, p)
 	}
+	// Windows：USERPROFILE\Documents；其次是 OneDrive 重定向后的文档目录。
 	if up := os.Getenv("USERPROFILE"); up != "" {
 		add(filepath.Join(up, "Documents"))
 		add(filepath.Join(up, "OneDrive", "Documents"))
 	}
+	// Linux：XDG 规范里文档目录可能是本地化的，优先读 xdg-user-dir 的结果。
+	if runtime.GOOS == "linux" {
+		if docs := xdgDocumentsDir(); docs != "" {
+			add(docs)
+		}
+	}
+	// macOS 与上面都没命中的情况：家目录下的 Documents。
 	if home != "" {
 		add(filepath.Join(home, "Documents"))
+		add(home)
 	}
 	// 下面两个兜底位置几乎一定可写。
 	if d, err := os.UserCacheDir(); err == nil {
-		add(filepath.Join(d, "ResumeMaker"))
+		add(filepath.Join(d, "ResumeTool"))
 	}
 	add(storeDir)
 	add(os.TempDir())
@@ -272,7 +282,7 @@ func pickExportDir() string {
 			continue
 		}
 		dir := filepath.Join(base, "简历导出")
-		if base == storeDir || base == os.TempDir() {
+		if base == storeDir || base == os.TempDir() || base == home {
 			dir = base
 		}
 		if writable(dir) {
@@ -284,6 +294,31 @@ func pickExportDir() string {
 		}
 	}
 	return os.TempDir()
+}
+
+// xdgDocumentsDir 读取 XDG 用户目录配置里的文档目录。
+// 中文桌面环境下它通常是 ~/文档，硬编码 Documents 会找不到。
+func xdgDocumentsDir() string {
+	if d := os.Getenv("XDG_DOCUMENTS_DIR"); d != "" {
+		return d
+	}
+	if home, err := os.UserHomeDir(); err == nil {
+		cfg := filepath.Join(home, ".config", "user-dirs.dirs")
+		if b, err := os.ReadFile(cfg); err == nil {
+			for _, line := range strings.Split(string(b), "\n") {
+				line = strings.TrimSpace(line)
+				if !strings.HasPrefix(line, "XDG_DOCUMENTS_DIR=") {
+					continue
+				}
+				v := strings.Trim(strings.TrimPrefix(line, "XDG_DOCUMENTS_DIR="), `"`)
+				v = strings.ReplaceAll(v, "$HOME", home)
+				if v != "" && v != home {
+					return v
+				}
+			}
+		}
+	}
+	return ""
 }
 
 // writable 创建目录并试写一个临时文件，确认真的能落盘。
@@ -630,20 +665,49 @@ func findBrowser() (string, error) {
 		}
 		return ""
 	}
-	for _, root := range []string{get("ProgramFiles"), get("ProgramFiles(x86)"), get("LOCALAPPDATA")} {
-		if root == "" {
-			continue
+
+	switch runtime.GOOS {
+	case "windows":
+		for _, root := range []string{get("ProgramFiles"), get("ProgramFiles(x86)"), get("LOCALAPPDATA")} {
+			if root == "" {
+				continue
+			}
+			candidates = append(candidates,
+				filepath.Join(root, "Microsoft", "Edge", "Application", "msedge.exe"),
+				filepath.Join(root, "Google", "Chrome", "Application", "chrome.exe"),
+				filepath.Join(root, "Google", "Chrome Beta", "Application", "chrome.exe"),
+				filepath.Join(root, "Chromium", "Application", "chrome.exe"),
+				filepath.Join(root, "BraveSoftware", "Brave-Browser", "Application", "brave.exe"),
+				filepath.Join(root, "Vivaldi", "Application", "vivaldi.exe"),
+			)
 		}
+	case "darwin":
+		for _, app := range [][2]string{
+			{"Google Chrome", "Google Chrome"},
+			{"Microsoft Edge", "Microsoft Edge"},
+			{"Brave Browser", "Brave Browser"},
+			{"Chromium", "Chromium"},
+			{"Vivaldi", "Vivaldi"},
+		} {
+			candidates = append(candidates,
+				filepath.Join("/Applications", app[0]+".app", "Contents", "MacOS", app[1]),
+			)
+		}
+	default: // linux / bsd
 		candidates = append(candidates,
-			filepath.Join(root, "Microsoft", "Edge", "Application", "msedge.exe"),
-			filepath.Join(root, "Google", "Chrome", "Application", "chrome.exe"),
-			filepath.Join(root, "Google", "Chrome Beta", "Application", "chrome.exe"),
-			filepath.Join(root, "Chromium", "Application", "chrome.exe"),
-			filepath.Join(root, "BraveSoftware", "Brave-Browser", "Application", "brave.exe"),
-			filepath.Join(root, "Vivaldi", "Application", "vivaldi.exe"),
+			"/usr/bin/google-chrome",
+			"/usr/bin/google-chrome-stable",
+			"/usr/bin/chromium",
+			"/usr/bin/chromium-browser",
+			"/usr/bin/microsoft-edge",
+			"/usr/bin/microsoft-edge-stable",
+			"/usr/bin/brave-browser",
+			"/snap/bin/chromium",
+			"/var/lib/flatpak/exports/bin/com.google.Chrome",
 		)
 	}
-	for _, name := range []string{"msedge", "chrome", "chromium", "brave"} {
+
+	for _, name := range []string{"msedge", "chrome", "google-chrome", "chromium", "chromium-browser", "brave", "vivaldi"} {
 		if p, err := exec.LookPath(name); err == nil {
 			candidates = append(candidates, p)
 		}
@@ -653,7 +717,7 @@ func findBrowser() (string, error) {
 			return c, nil
 		}
 	}
-	return "", errors.New("未找到 Edge / Chrome 浏览器，无法生成 PDF")
+	return "", errors.New("未找到 Chromium 内核浏览器（Edge / Chrome / Chromium / Brave），无法生成矢量 PDF")
 }
 
 func printPDF(out string) error {
@@ -685,9 +749,13 @@ func printPDF(out string) error {
 		"--run-all-compositor-stages-before-draw",
 		"--virtual-time-budget=6000",
 		"--user-data-dir=" + tmpProfile,
-		"--print-to-pdf=" + out,
-		url,
 	}
+	// Linux 上常以 root / 容器身份运行，Chromium 需要关掉沙箱才能启动。
+	// Windows 与 macOS 不传这个参数，免得降低浏览器自身的安全性。
+	if runtime.GOOS != "windows" && runtime.GOOS != "darwin" {
+		args = append(args, "--no-sandbox", "--disable-dev-shm-usage")
+	}
+	args = append(args, "--print-to-pdf="+out, url)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 90*time.Second)
 	defer cancel()

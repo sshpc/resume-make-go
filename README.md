@@ -1,52 +1,68 @@
-# 简历工坊 · ResumeMaker
+# 简历工具 · Resume Tool
 
-一个用 **Go** 写的本地简历制作工具。编译产物是**单个 EXE**，双击后自动起一个只在本机回环地址（`127.0.0.1`）上监听的服务，并自动打开浏览器进入编辑器。
+[![CI](https://github.com/sshpc/resume-make-go/actions/workflows/ci.yml/badge.svg)](https://github.com/sshpc/resume-make-go/actions/workflows/ci.yml)
+[![Release](https://github.com/sshpc/resume-make-go/actions/workflows/release.yml/badge.svg)](https://github.com/sshpc/resume-make-go/actions/workflows/release.yml)
+[![Go](https://img.shields.io/badge/Go-1.21%2B-00ADD8?logo=go&logoColor=white)](https://go.dev/)
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+
+一个用 **Go** 写的本地简历制作工具。编译产物是**单个可执行文件**，双击后自动在 `127.0.0.1` 上起一个本地服务并打开浏览器进入编辑器 —— 不用安装任何环境，不联网，简历数据只留在你自己的电脑上。
 
 - **左侧编辑 · 右侧实时预览**，所见即所得的 A4 排版
-- **模块化**：工作经历、项目经历、教育背景、技能标签、自定义文本，可自由增删、上下调序、切换主栏/辅栏
+- **模块化**：工作经历、项目经历、教育背景、技能标签、自定义文本，可自由增删、上下调序、切换主栏 / 辅栏
 - **4 套模板 × 6 套配色**，一键切换
-- **头像**：鼠标移到预览里的头像上会浮出两个小按钮 —— 「换」上传新头像、「存图」把这张头像单独保存成 JPG；左侧编辑器里也有对应的「选择图片…／保存头像文件／清除」
-- **保存图片**：把整份简历渲染成高清 PNG（2 倍分辨率）存到本地
-- **导出 PDF**：优先用本机浏览器内核直接「打印」成矢量 PDF（文字可选中、可检索）；若本机没有可用的 Chromium 内核浏览器，自动降级为图片型 PDF，保证一定能导出
-- **数据不出本机**：所有内容存在本机 JSON 文件里，服务只监听 `127.0.0.1`，且接口带随机令牌校验，其它网页无法调用
+- **分页参考线**：内容超过一页时，预览里会画出 A4 分页虚线，方便对照调整
+- **头像**：鼠标移到预览里的头像上会浮出两个小按钮 —— 「换」上传新头像、「存图」把这张头像单独存成 JPG；左侧编辑器里也有「选择图片… / 保存头像文件 / 清除」
+- **保存图片**：把整份简历渲染成 2 倍分辨率的 PNG
+- **导出 PDF**：优先用本机浏览器内核「打印」成矢量 PDF（文字可选中、可检索）；没有可用的 Chromium 内核时自动降级为图片型 PDF，保证一定导得出来
+- **数据不出本机**：存档就是本机一个 JSON 文件，服务只绑定回环地址，接口带随机令牌校验，别的网页调不动
 
 ---
 
-## 一、直接使用（无需安装 Go）
+## 一、下载即用
 
-```
-简历工坊.exe
-```
+到 [**Releases**](https://github.com/sshpc/resume-make-go/releases) 下载对应平台的压缩包，解压后直接运行，不需要安装 Go 或任何依赖。
 
-双击即可。程序会：
+| 平台 | 文件 | 说明 |
+| --- | --- | --- |
+| Windows x64 | `resume-tool-windows-amd64.exe` | 绝大多数 Windows 电脑用这个 |
+| Windows ARM64 | `resume-tool-windows-arm64.exe` | 骁龙 X / Surface Pro X 等 ARM 机型 |
+| Linux x64 | `resume-tool-linux-amd64` | 先 `chmod +x` 再运行 |
+| Linux ARM64 | `resume-tool-linux-arm64` | 树莓派、ARM 服务器 |
+| macOS Intel | `resume-tool-darwin-amd64` | 先 `chmod +x` 再运行 |
+| macOS Apple Silicon | `resume-tool-darwin-arm64` | M 系列芯片，先 `chmod +x` 再运行 |
+
+> macOS / Linux 上首次运行若提示「无法打开，因为来自身份不明的开发者」，在终端里执行
+> `xattr -d com.apple.quarantine ./resume-tool-darwin-arm64`（macOS）即可，或用 `./resume-tool-linux-amd64` 直接跑。
+
+Windows 双击 `resume-tool-windows-amd64.exe`，程序会：
 
 1. 在本机随机端口起一个 HTTP 服务（只绑定 `127.0.0.1`，外部访问不到）
 2. 自动打开默认浏览器
-3. 在控制台窗口打印访问地址，若浏览器没自动打开可手动复制
+3. 在控制台窗口打印访问地址，浏览器没自动打开时手动复制即可
 
-关闭控制台窗口即退出；也可以在页面右上角点「退出」。
+关闭控制台窗口即退出；也可以在页面右上角点「退出」。已经有一个实例在跑时，再次双击不会启动第二个实例，而是直接把浏览器切到已打开的那个窗口，避免两份存档互相覆盖。
 
-### 常用命令行参数
+### 命令行参数
 
 | 参数 | 说明 |
 | --- | --- |
-| `-port 8080` | 指定端口（默认随机） |
+| `-port 8080` | 指定端口（默认随机空闲端口） |
 | `-no-browser` | 不自动打开浏览器 |
-| `-data D:\mydata` | 指定数据目录（默认 `%APPDATA%\ResumeMaker`） |
-
-已经有一个实例在跑时，再次双击不会启动第二个实例，而是直接把浏览器切到已打开的窗口，避免两份存档互相覆盖。
+| `-data D:\mydata` | 指定数据目录（默认 `%APPDATA%\ResumeTool`） |
 
 ---
 
 ## 二、文件位置
 
-| 内容 | 位置 |
-| --- | --- |
-| 简历存档 | `%APPDATA%\ResumeMaker\resume.json`（自动保存，约 0.9 秒防抖） |
-| 导出的图片 / PDF | `文档\简历导出\`（若「文档」不可写，自动退到数据目录） |
-| 运行状态标记 | `%APPDATA%\ResumeMaker\instance.json` |
+| 内容 | Windows | Linux / macOS |
+| --- | --- | --- |
+| 简历存档 | `%APPDATA%\ResumeTool\resume.json` | `~/.config/ResumeTool/resume.json` |
+| 导出的图片 / PDF | `文档\简历导出\` | `~/文档/简历导出/`（遵循 XDG 用户目录） |
+| 运行状态标记 | `%APPDATA%\ResumeTool\instance.json` | `~/.config/ResumeTool/instance.json` |
 
-页面底部状态栏会直接显示当前的**导出目录**完整路径，导出成功后还会用提示条告诉你文件的绝对路径。
+页面底部状态栏会直接显示当前的**导出目录**完整路径，导出成功后还会用提示条告诉你文件的绝对路径。若「文档」目录不可写，会自动退到缓存目录或数据目录，不会因此导出失败。
+
+> 从旧版本（ResumeMaker）升级时，若新目录不存在而旧目录存在，程序会继续沿用旧目录，不会丢存档。
 
 ---
 
@@ -54,16 +70,25 @@
 
 需要 Go **1.21 或更高**。
 
-### 方式一：双击 `build.bat`
+### 方式一：双击 `build.bat`（Windows）
+
+加参数 `build.bat all` 可一次交叉编译出全部 6 个平台的产物，输出到 `dist\`。
 
 ### 方式二：命令行
 
-```bat
-cd resume-maker
-go build -trimpath -ldflags "-s -w" -o 简历工坊.exe .
+```bash
+git clone git@github.com:sshpc/resume-make-go.git
+cd resume-make-go
+
+# 本机版本
+go build -trimpath -ldflags "-s -w" -o dist/resume-tool .
+
+# 交叉编译（以 Linux x64 为例）
+CGO_ENABLED=0 GOOS=linux GOARCH=amd64 \
+  go build -trimpath -ldflags "-s -w" -o dist/resume-tool-linux-amd64 .
 ```
 
-产物约 7 MB，**前端已通过 `go:embed` 打进 exe**，分发时只需要这一个文件。
+产物约 7 MB，**前端已通过 `go:embed` 打进可执行文件**，分发时只需要这一个文件。
 
 > 如果编译时遇到临时目录权限相关的报错，可以先把缓存目录指到项目内：
 >
@@ -72,22 +97,45 @@ go build -trimpath -ldflags "-s -w" -o 简历工坊.exe .
 > set GOTMPDIR=%cd%\.gotmp
 > ```
 
+### 方式三：GitHub Actions 自动编译
+
+仓库里带了两条工作流：
+
+| 工作流 | 触发方式 | 作用 |
+| --- | --- | --- |
+| [`.github/workflows/ci.yml`](.github/workflows/ci.yml) | 推送到 `main` / 提 PR / 手动 | 在 Ubuntu、Windows、macOS 上跑 `go vet`、`go build`、`gofmt` 检查 |
+| [`.github/workflows/release.yml`](.github/workflows/release.yml) | 推 `v*` 标签 / 手动 | 交叉编译 6 个平台的可执行文件，打 zip 后发布到 Releases |
+
+发一个新版本的完整流程：
+
+```bash
+git tag v1.1.0
+git push origin v1.1.0
+```
+
+等 Actions 跑完，Releases 页面就会出现带全部平台产物的新版本。只想临时拿构建产物、不发版时，在 Actions 页面手动触发 `Release` 工作流即可，产物在运行记录的 Artifacts 里。
+
 ---
 
 ## 四、项目结构
 
 ```
-resume-maker/
-├─ main.go            服务入口：路由、鉴权、存档、导出、单实例、开浏览器
-├─ pdfgen.go          纯 Go 兜底方案：把整页截图拼成 A4 多页 PDF
+.
+├─ main.go                 服务入口：路由、鉴权、存档、导出、单实例、开浏览器
+├─ pdfgen.go               纯 Go 兜底方案：把整页截图拼成 A4 多页 PDF
+├─ console_windows.go      Windows 控制台切换 UTF-8 代码页
+├─ console_other.go        其它平台的空实现
 ├─ go.mod
-├─ build.bat          一键编译
-└─ web/               前端（embed 进 exe）
+├─ build.bat               Windows 一键编译（支持 all 参数交叉编译）
+├─ .github/workflows/
+│  ├─ ci.yml               三平台编译检查
+│  └─ release.yml          多平台产物 + 自动发版
+└─ web/                    前端（embed 进可执行文件）
    ├─ index.html
-   ├─ style.css       编辑器 / A4 纸面 / 打印样式
-   ├─ app.js          全部交互逻辑
+   ├─ style.css            编辑器 / A4 纸面 / 打印样式
+   ├─ app.js               全部交互逻辑
    └─ vendor/
-      └─ html2canvas.min.js   整页截图用（MIT）
+      └─ html2canvas.min.js  整页截图用（MIT）
 ```
 
 ### 后端接口
@@ -107,12 +155,12 @@ resume-maker/
 ## 五、关于 PDF 的两种实现
 
 1. **首选：浏览器内核打印**
-   调用本机 Edge / Chrome / Brave / Vivaldi 的 headless 模式 `--print-to-pdf`，产出真正的矢量 PDF，文字可选中、体积小、打印清晰。会依次在 `ProgramFiles`、`ProgramFiles(x86)`、`LOCALAPPDATA` 下查找。
+   调用本机 Edge / Chrome / Chromium / Brave / Vivaldi 的 headless 模式 `--print-to-pdf`，产出真正的矢量 PDF，文字可选中、体积小、打印清晰。Windows 会查 `ProgramFiles`、`ProgramFiles(x86)`、`LOCALAPPDATA`；macOS 会查 `/Applications/*.app`；Linux 会查常见包管理路径以及 `snap` / `flatpak`。
 
 2. **兜底：图片型 PDF**（`pdfgen.go`）
    找不到浏览器、或 headless 被安全软件拦下时，用前端整页截图按 A4 比例切页、JPEG 压缩后手工拼装 PDF 1.4 结构。清晰度略低且文字不可选中，但**保证一定能导出**。
 
-两种都失败时（例如浏览器完全不可用），页面会退回调用 `window.print()`，由你在打印对话框里选「另存为 PDF」。
+两种都失败时，页面会退回调用 `window.print()`，由你在打印对话框里选「另存为 PDF」。
 
 ---
 
@@ -148,13 +196,16 @@ resume-maker/
 加 `-port 8080`（或任意空闲端口）重新启动。
 
 **导出的 PDF 里文字选不中？**
-说明走的是图片型兜底方案，本机没找到可用于 headless 打印的浏览器。安装 Edge 或 Chrome 后重新导出即可得到矢量 PDF。
+说明走的是图片型兜底方案，本机没找到可用于 headless 打印的浏览器。安装 Edge、Chrome 或 Chromium 后重新导出即可得到矢量 PDF。
+
+**Linux 上没有浏览器，PDF 怎么办？**
+`apt install chromium`（或 `chromium-browser`）之后重新导出即可得到矢量 PDF；不装也能导出，只是变成图片型。
 
 **想换电脑用？**
-把 `%APPDATA%\ResumeMaker\resume.json` 一起拷走，或者用页面上的「导出 JSON」备份。
+把存档文件一起拷走，或者用页面上的「导出 JSON」备份、在新电脑上「导入」。
 
 **会不会把简历上传到网上？**
-不会。服务只绑定回环地址，没有任何外部请求；html2canvas 也已经内嵌在 exe 里，运行时不联网。
+不会。服务只绑定回环地址，运行时不发起任何外部请求；html2canvas 已经内嵌在可执行文件里。
 
 ---
 
@@ -163,3 +214,19 @@ resume-maker/
 - [html2canvas](https://html2canvas.hertzen.com/) 1.4.1 — MIT License，用于把预览整页渲染成 PNG。
 
 其余代码均为本项目自写，无其它第三方依赖。
+
+---
+
+## English
+
+A single-binary local resume builder written in Go. Run the executable, it starts a loopback-only HTTP server on `127.0.0.1`, opens your browser, and gives you a split editor: edit on the left, live A4 preview on the right.
+
+Features: 4 templates × 6 color themes, drag-free section reordering, page-break guides, avatar upload with a one-click "save avatar image" button, full-page PNG export, and PDF export (vector via headless Chromium when available, image-based fallback otherwise). Everything runs offline; your data never leaves the machine.
+
+Download the binary for your platform from [Releases](https://github.com/sshpc/resume-make-go/releases) — no Go or runtime needed. To build from source: `go build -trimpath -ldflags "-s -w" -o dist/resume-tool .` (Go 1.21+).
+
+Push a `v*` tag to have GitHub Actions cross-compile Windows / Linux / macOS binaries and publish them automatically.
+
+## License
+
+[MIT](LICENSE)

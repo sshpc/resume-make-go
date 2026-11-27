@@ -1,4 +1,4 @@
-/* 简历工坊 · 前端逻辑（无构建、无依赖，除 html2canvas） */
+/* 简历工具 · 前端逻辑（无构建、无依赖，除 html2canvas） */
 (function () {
   'use strict';
 
@@ -680,7 +680,7 @@
         if (!confirm('退出后将关闭本地服务，确定吗？（简历已自动保存）')) return;
         await save(true);
         try { await api('/api/quit', {}); } catch (e) { /* ignore */ }
-        document.body.innerHTML = '<div style="display:grid;place-items:center;height:100vh;font-size:15px;color:#5b6372">简历工坊已退出，可以关闭此标签页。</div>';
+        document.body.innerHTML = '<div style="display:grid;place-items:center;height:100vh;font-size:15px;color:#5b6372">简历工具已退出，可以关闭此标签页。</div>';
         break;
       case 'zoom-in': setZoom(zoom + 0.1); break;
       case 'zoom-out': setZoom(zoom - 0.1); break;

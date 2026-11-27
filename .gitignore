@@ -29,6 +29,11 @@ go.work.sum
 # env file
 .env
 
+# 编译产物与本地缓存（build.bat 会用到这些目录）
+/dist/
+/.gocache/
+/.gotmp/
+
 # Editor/IDE
 # .idea/
 # .vscode/
