@@ -9,7 +9,11 @@
 
 - **左侧编辑 · 右侧实时预览**，所见即所得的 A4 排版
 - **模块化**：工作经历、项目经历、教育背景、技能标签、自定义文本，可自由增删、上下调序、切换主栏 / 辅栏
-- **4 套模板 × 6 套配色**，一键切换
+- **5 套版式 × 6 套配色 × 3 档密度**，一键切换；「密度（紧凑 / 标准 / 宽松）」对**所有版式**都生效
+- **全局排版可调**：正文字号、标题字号、行间距、模块间距、条目间距，以及纸张的上 / 右 / 下 / 左边距 —— 都在左侧「排版与页面」里实时改
+- **基本信息自由配置**：手机、邮箱、城市、性别、出生年月、工作年限、个人主页，每一项都能**改名**、**单独隐藏**；名称后的冒号可选全角 / 半角 / 不显示
+- **富文本描述**：每个要点的描述是富文本编辑框，支持**加粗 / 斜体 / 下划线 / 有序列表 / 无序列表**，回车自动续写成列表项
+- **项目符号可选**：无序列表的符号能选**小方块 / 小黑点 / 小圆圈 / 不显示**
 - **分页参考线**：内容超过一页时，预览里会画出 A4 分页虚线，方便对照调整
 - **头像**：鼠标移到预览里的头像上会浮出两个小按钮 —— 「换」上传新头像、「存图」把这张头像单独存成 JPG；左侧编辑器里也有「选择图片… / 保存头像文件 / 清除」
 - **保存图片**：把整份简历渲染成 2 倍分辨率的 PNG
@@ -112,8 +116,8 @@ CGO_ENABLED=0 GOOS=linux GOARCH=amd64 \
 发一个新版本的完整流程：
 
 ```bash
-git tag v1.1.0
-git push origin v1.1.0
+git tag v1.2.0
+git push origin v1.2.0
 ```
 
 等 Actions 跑完，Releases 页面就会出现带全部平台产物的新版本；想提前验证 CI 是否正常，先手动触发一次 `Build` 工作流即可。
@@ -173,10 +177,17 @@ git push origin v1.1.0
 ```json
 {
   "meta": { "name": "张明远", "job": "高级前端工程师", "phone": "…", "avatar": "data:image/jpeg;base64,…" },
+  "metaFields": [ { "key": "phone", "label": "联系电话", "show": true } ],
   "theme": { "color": "blue", "template": "modern" },
+  "layout": {
+    "fsBody": 13, "fsHead": 14.5, "lhBody": 1.7, "gapSec": 17, "gapItem": 11,
+    "padT": 52, "padR": 56, "padB": 52, "padL": 56,
+    "bullet": "diamond", "colon": "：", "showLabel": true, "sideLeft": false
+  },
   "sections": [
     { "id": "…", "type": "experience", "title": "工作经历", "col": "main",
-      "items": [ { "role": "公司", "title": "职位", "start": "2021.03", "end": "至今", "desc": "每行一条要点" } ] },
+      "items": [ { "role": "公司", "title": "职位", "start": "2021.03", "end": "至今",
+                   "desc": "<ul><li>负责<b>渲染引擎</b>重构</li><li>搭建组件库</li></ul>" } ] },
     { "id": "…", "type": "skills", "title": "专业技能", "col": "side", "tags": "Go, Redis" },
     { "id": "…", "type": "custom", "title": "自我评价", "col": "side", "text": "……" }
   ]
@@ -184,8 +195,11 @@ git push origin v1.1.0
 ```
 
 `type` 可选：`experience` / `project` / `education`（条目型）、`skills`（标签型）、`custom`（文本型）。
-`col` 可选：`main`（主栏）/ `side`（辅栏，单栏模板下忽略）。
-`theme.color`：`blue` / `ink` / `green` / `amber` / `violet` / `teal`；`theme.template`：`modern` / `accent` / `classic` / `compact`。
+`col` 可选：`main`（主栏）/ `side`（辅栏，单栏版式下忽略）。
+`theme.color`：`blue` / `ink` / `green` / `amber` / `violet` / `teal`。
+`theme.template`（版式）：`modern`（现代双栏）/ `accent`（侧栏色块）/ `classic`（经典单栏）/ `banner`（顶栏色带）/ `minimal`（极简）。
+`layout.bullet`（无序列表符号）：`diamond` / `disc` / `circle` / `none`；`layout.colon`：`""`（不显示）/ `"："` / `":"`。
+`desc` 是**富文本 HTML**，只保留 `b / strong / i / em / u / br / p / div / ul / ol / li`，其余标签与所有属性都会在导入时被剥掉。旧版本导出的纯文本 `desc`（每行一条）在导入时会自动转换成无序列表，不会丢内容。
 
 ---
 
@@ -223,7 +237,7 @@ git push origin v1.1.0
 
 A single-binary local resume builder written in Go. Run the executable, it starts a loopback-only HTTP server on `127.0.0.1`, opens your browser, and gives you a split editor: edit on the left, live A4 preview on the right.
 
-Features: 4 templates × 6 color themes, drag-free section reordering, page-break guides, avatar upload with a one-click "save avatar image" button, full-page PNG export, and PDF export (vector via headless Chromium when available, image-based fallback otherwise). Everything runs offline; your data never leaves the machine.
+Features: 5 layouts × 6 color themes × 3 density presets, a global typography panel (body/heading font size, line height, section & item spacing, page margins), per-field renaming and hiding for the contact info, bullet-style selection for unordered lists, drag-free section reordering, page-break guides, a rich-text description editor (bold / italic / underline / ordered & unordered lists), avatar upload with a one-click "save avatar image" button, full-page PNG export, and PDF export (vector via headless Chromium when available, image-based fallback otherwise). Everything runs offline; your data never leaves the machine.
 
 Download the binary for your platform from [Releases](https://github.com/sshpc/resume-make-go/releases) — no Go or runtime needed. To build from source: `go build -trimpath -ldflags "-s -w" -o dist/resume-tool .` (Go 1.21+).
 

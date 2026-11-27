@@ -6,7 +6,6 @@
   const $ = (s, r) => (r || document).querySelector(s);
   const $$ = (s, r) => Array.from((r || document).querySelectorAll(s));
   const uid = () => Math.random().toString(36).slice(2, 9);
-  const clone = (o) => JSON.parse(JSON.stringify(o));
 
   /* ---------------- 常量 ---------------- */
   const THEMES = {
@@ -18,12 +17,43 @@
     teal:   { name: '湖蓝', ac: '#0d7285', soft: '#e8f5f7', line: '#cbe7ec', deep: '#085263' }
   };
 
+  // 版式（模板）：只决定栏目结构，字号行距等由「全局排版」统一控制。
   const TEMPLATES = [
     { id: 'modern',  name: '现代双栏' },
     { id: 'accent',  name: '侧栏色块' },
     { id: 'classic', name: '经典单栏' },
-    { id: 'compact', name: '紧凑排版' }
+    { id: 'banner',  name: '顶栏色带' },
+    { id: 'minimal', name: '极简' }
   ];
+
+  // 密度预设：一键写入下面的全局排版数值，写完后仍可手动微调。
+  const DENSITY = {
+    compact: { name: '紧凑', fsBody: 12.2, fsHead: 13.2, lhBody: 1.52, gapSec: 11, gapItem: 7,  padT: 38, padR: 44, padB: 38, padL: 44 },
+    normal:  { name: '标准', fsBody: 13,   fsHead: 14.5, lhBody: 1.7,  gapSec: 17, gapItem: 11, padT: 52, padR: 56, padB: 52, padL: 56 },
+    loose:   { name: '宽松', fsBody: 13.8, fsHead: 15.5, lhBody: 1.86, gapSec: 22, gapItem: 14, padT: 62, padR: 66, padB: 62, padL: 66 }
+  };
+  const DENSITY_KEYS = ['fsBody', 'fsHead', 'lhBody', 'gapSec', 'gapItem', 'padT', 'padR', 'padB', 'padL'];
+
+  // 无序列表的项目符号样式（导出 HTML / 编辑区共用）
+  const BULLETS = [
+    { id: 'diamond', name: '小方块' },
+    { id: 'disc',    name: '小黑点' },
+    { id: 'circle',  name: '小圆圈' },
+    { id: 'none',    name: '不显示' }
+  ];
+
+  // 基本信息里可配置的字段：默认名称、是否显示。
+  const META_FIELDS = [
+    { key: 'phone',   label: '手机' },
+    { key: 'email',   label: '邮箱' },
+    { key: 'city',    label: '城市' },
+    { key: 'gender',  label: '性别' },
+    { key: 'birth',   label: '出生年月' },
+    { key: 'years',   label: '工作年限' },
+    { key: 'website', label: '个人主页' }
+  ];
+
+  const COLONS = ['', '：', ':'];
 
   const SEC_TYPES = {
     experience: { name: '工作经历', kind: 'items', role: '公司 / 组织', title: '职位名称', add: '新增一段经历' },
@@ -34,6 +64,23 @@
   };
 
   /* ---------------- 默认数据 ---------------- */
+  function defaultLayout() {
+    const d = DENSITY.normal;
+    return {
+      fsBody: d.fsBody, fsHead: d.fsHead, lhBody: d.lhBody,
+      gapSec: d.gapSec, gapItem: d.gapItem,
+      padT: d.padT, padR: d.padR, padB: d.padB, padL: d.padL,
+      bullet: 'diamond',
+      colon: '：',
+      showLabel: true,
+      sideLeft: false
+    };
+  }
+
+  function defaultMetaFields() {
+    return META_FIELDS.map((f) => ({ key: f.key, label: f.label, show: true }));
+  }
+
   function defaultResume() {
     return {
       meta: {
@@ -48,18 +95,20 @@
         website: 'github.com/zhangmy',
         avatar: ''
       },
+      metaFields: defaultMetaFields(),
       theme: { color: 'blue', template: 'modern' },
+      layout: defaultLayout(),
       sections: [
         {
           id: uid(), type: 'experience', title: '工作经历', col: 'main',
           items: [
             {
               id: uid(), role: '杭州云启科技有限公司', title: '高级前端工程师', start: '2021.03', end: '至今',
-              desc: '负责企业级低代码平台前端架构，主导渲染引擎重构，首屏加载耗时从 3.4s 降至 1.1s\n搭建组件库与可视化编辑器，支撑 12 条业务线复用，节省重复开发约 40%\n推动前端工程化落地，接入单元测试与灰度发布，线上故障率下降 65%'
+              desc: '<ul><li>负责企业级低代码平台前端架构，主导<b>渲染引擎重构</b>，首屏加载耗时从 3.4s 降至 <b>1.1s</b></li><li>搭建组件库与可视化编辑器，支撑 12 条业务线复用，节省重复开发约 40%</li><li>推动前端工程化落地，接入单元测试与灰度发布，线上故障率<i>下降 65%</i></li></ul>'
             },
             {
               id: uid(), role: '上海微光网络科技', title: '前端工程师', start: '2018.07', end: '2021.02',
-              desc: '完成电商中台从 jQuery 到 Vue 的技术迁移，覆盖 30+ 页面模块\n优化商品详情页渲染策略，转化率提升 8.6%\n负责移动端 H5 性能治理，弱网首屏可用时间缩短至 1.8s'
+              desc: '<ul><li>完成电商中台从 jQuery 到 Vue 的技术迁移，覆盖 30+ 页面模块</li><li>优化商品详情页渲染策略，转化率提升 8.6%</li><li>负责移动端 H5 性能治理，弱网首屏可用时间缩短至 1.8s</li></ul>'
             }
           ]
         },
@@ -68,14 +117,14 @@
           items: [
             {
               id: uid(), role: '低代码可视化搭建平台', title: '前端负责人', start: '2022.04', end: '2023.12',
-              desc: '设计拖拽画布与 schema 协议，支持 60+ 物料与嵌套布局\n实现运行时渲染引擎，页面产出效率提升约 3 倍\n沉淀性能监控与错误上报体系，问题定位时间从小时级缩短到分钟级'
+              desc: '<ul><li>设计拖拽画布与 schema 协议，支持 60+ 物料与嵌套布局</li><li>实现运行时渲染引擎，页面产出效率提升约 <b>3 倍</b></li><li>沉淀性能监控与错误上报体系，问题定位时间从小时级缩短到分钟级</li></ul>'
             }
           ]
         },
         {
           id: uid(), type: 'education', title: '教育背景', col: 'side',
           items: [
-            { id: uid(), role: '浙江大学', title: '计算机科学与技术 · 本科', start: '2014.09', end: '2018.06', desc: 'GPA 3.7 / 4.0，校级优秀毕业生' }
+            { id: uid(), role: '浙江大学', title: '计算机科学与技术 · 本科', start: '2014.09', end: '2018.06', desc: '<p>GPA 3.7 / 4.0，校级优秀毕业生</p>' }
           ]
         },
         {
@@ -199,8 +248,62 @@
     return ok;
   }
 
+  /* ---------------- 富文本 ---------------- */
+  // 只允许这些标签，且一律去掉属性（含 style / on* ），
+  // 因为 desc 可能是导入的 JSON 或粘贴进来的 HTML。
+  const RICH_TAGS = /^(b|strong|i|em|u|br|p|div|ul|ol|li)$/i;
+
+  function sanitizeHtml(html) {
+    let s = String(html == null ? '' : html);
+    s = s.replace(/<!--[\s\S]*?-->/g, '');
+    s = s.replace(/<(script|style|iframe|object|embed|link|meta|svg|math)\b[^>]*>[\s\S]*?<\/\1\s*>/gi, '');
+    s = s.replace(/<(script|style|iframe|object|embed|link|meta|svg|math)\b[^>]*\/?>/gi, '');
+    s = s.replace(/<\/?([a-zA-Z][a-zA-Z0-9]*)([^>]*)>/g, (m0, tag) => {
+      if (!RICH_TAGS.test(tag)) return '';
+      const t = tag.toLowerCase();
+      if (t === 'br') return '<br>';
+      return m0.charAt(1) === '/' ? '</' + t + '>' : '<' + t + '>';
+    });
+    s = s.replace(/javascript:/gi, '');
+    return s;
+  }
+
+  // 兼容旧版本存档：desc 曾经是「每行一条」的纯文本。
+  function descToHtml(v) {
+    const s = String(v == null ? '' : v);
+    if (!s.trim()) return '';
+    if (/<[a-zA-Z]/.test(s)) return sanitizeHtml(s);
+    const lines = s.split(/\r?\n/).map((x) => x.trim()).filter(Boolean);
+    if (!lines.length) return '';
+    if (lines.length === 1) return '<p>' + esc(lines[0]) + '</p>';
+    return '<ul>' + lines.map((l) => '<li>' + esc(l) + '</li>').join('') + '</ul>';
+  }
+
   /* ---------------- 编辑器渲染 ---------------- */
   function secIndex(id) { return state.sections.findIndex((s) => s.id === id); }
+
+  function metaFieldsOf() {
+    if (!Array.isArray(state.metaFields) || !state.metaFields.length) state.metaFields = defaultMetaFields();
+    return state.metaFields;
+  }
+
+  function numField(label, key, min, max, step) {
+    const v = state.layout[key];
+    return `<div class="num-item"><label>${label}</label>
+      <input type="number" data-layout="${key}" value="${v}" min="${min}" max="${max}" step="${step || 0.5}"></div>`;
+  }
+
+  function richTools(path) {
+    return `<div class="rich-tools" data-rt-for="${path}">
+      <button type="button" class="rich-btn" data-rt="bold" title="加粗（Ctrl+B）"><b>B</b></button>
+      <button type="button" class="rich-btn" data-rt="italic" title="斜体（Ctrl+I）"><i>I</i></button>
+      <button type="button" class="rich-btn" data-rt="underline" title="下划线（Ctrl+U）"><u>U</u></button>
+      <span class="sep"></span>
+      <button type="button" class="rich-btn" data-rt="ul" title="无序列表">•&nbsp;列表</button>
+      <button type="button" class="rich-btn" data-rt="ol" title="有序列表">1.&nbsp;列表</button>
+      <span class="tip-txt">回车换行，列表自动加符号</span>
+    </div>`;
+  }
 
   function renderEditor() {
     const box = $('#editor');
@@ -242,12 +345,58 @@
         <div class="field"><label>个人主页 <span class="hint">（可留空）</span></label>
           <input type="text" data-bind="meta.website" value="${esc(state.meta.website)}" placeholder="github.com/xxx"></div>
         <div class="field"><label>头像</label>
-          <div class="add-row">
+          <div class="add-row" style="margin-top:0">
             <button class="chip-btn" data-act="pick-avatar">选择图片…</button>
             <button class="chip-btn solid" data-act="save-avatar">保存头像文件</button>
             <button class="chip-btn solid" data-act="clear-avatar">清除</button>
           </div>
         </div>
+
+        <div class="opt-h">字段名与显示 <span class="hint">（勾选才显示在简历上，名称可改）</span></div>
+        ${metaFieldsOf().map((f, k) => `<div class="mf-row">
+          <label class="mf-chk"><input type="checkbox" data-mf-show="${k}" ${f.show ? 'checked' : ''}><span></span></label>
+          <input type="text" class="mf-label" data-mf-label="${k}" value="${esc(f.label)}" placeholder="字段名">
+          <span class="mf-val">${esc(state.meta[f.key] || '')}</span>
+        </div>`).join('')}
+        <div class="mf-row" style="margin-top:8px">
+          <span class="mf-label" style="color:var(--ink-2);font-size:12px">名称后的冒号</span>
+          <select data-colon style="flex:1">
+            <option value="" ${state.layout.colon === '' ? 'selected' : ''}>不显示</option>
+            <option value="：" ${state.layout.colon === '：' ? 'selected' : ''}>全角（：）</option>
+            <option value=":" ${state.layout.colon === ':' ? 'selected' : ''}>半角（:）</option>
+          </select>
+        </div>
+      </div>
+    </div>`;
+
+    /* 全局排版 */
+    const lo = openCards.has('__layout');
+    html += `<div class="blk ${lo ? 'open' : ''}" data-card="__layout">
+      <div class="blk-head" data-toggle="__layout">
+        <span class="t"><span class="idx">2</span>排版与页面</span>
+        <span class="caret"></span>
+      </div>
+      <div class="blk-body">
+        <div class="num-grid">
+          ${numField('正文字号', 'fsBody', 9, 20, 0.1)}
+          ${numField('标题字号', 'fsHead', 10, 26, 0.1)}
+          ${numField('行间距', 'lhBody', 1.2, 2.6, 0.02)}
+          ${numField('模块间距', 'gapSec', 0, 60, 1)}
+          ${numField('条目间距', 'gapItem', 0, 40, 1)}
+        </div>
+        <div class="opt-h">纸张边距（px）</div>
+        <div class="num-grid">
+          ${numField('上', 'padT', 0, 140, 1)}
+          ${numField('右', 'padR', 0, 140, 1)}
+          ${numField('下', 'padB', 0, 140, 1)}
+          ${numField('左', 'padL', 0, 140, 1)}
+        </div>
+        <div class="opt-h">项目符号</div>
+        <select data-bul>
+          ${BULLETS.map((b) => `<option value="${b.id}" ${state.layout.bullet === b.id ? 'selected' : ''}>${b.name}</option>`).join('')}
+        </select>
+        <label class="tog"><input type="checkbox" data-side ${state.layout.sideLeft ? 'checked' : ''}>辅栏放左侧（双栏版式）</label>
+        <label class="tog"><input type="checkbox" data-meta-label ${state.layout.showLabel ? 'checked' : ''}>基本信息显示字段名</label>
       </div>
     </div>`;
 
@@ -257,7 +406,7 @@
       const isOpen = openCards.has(s.id);
       html += `<div class="blk ${isOpen ? 'open' : ''}" data-card="${s.id}">
         <div class="blk-head" data-toggle="${s.id}">
-          <span class="t"><span class="idx">${i + 2}</span>${esc(s.title || t.name)}</span>
+          <span class="t"><span class="idx">${i + 3}</span>${esc(s.title || t.name)}</span>
           <div class="tools" data-tools="${s.id}">
             <button class="icon-btn" data-sec-act="up" title="上移">↑</button>
             <button class="icon-btn" data-sec-act="down" title="下移">↓</button>
@@ -270,16 +419,17 @@
       html += `<div class="row">
           <div class="field"><label>模块标题</label>
             <input type="text" data-bind="sections.${i}.title" value="${esc(s.title)}"></div>
-          ${s.col ? `<div class="field" style="flex:0 0 132px"><label>位置</label>
+          <div class="field" style="flex:0 0 132px"><label>位置</label>
             <select data-bind="sections.${i}.col">
-              <option value="main" ${s.col === 'main' ? 'selected' : ''}>左侧主栏</option>
-              <option value="side" ${s.col === 'side' ? 'selected' : ''}>右侧辅栏</option>
-            </select></div>` : ''}
+              <option value="main" ${s.col === 'main' ? 'selected' : ''}>主栏</option>
+              <option value="side" ${s.col === 'side' ? 'selected' : ''}>辅栏</option>
+            </select></div>
         </div>`;
 
       if (t.kind === 'items') {
         if (!s.items.length) html += `<div class="empty">还没有内容，点下面的按钮添加</div>`;
         s.items.forEach((it, j) => {
+          const path = `sections.${i}.items.${j}.desc`;
           html += `<div class="sub">
             <div class="sub-head">
               <span class="ttl">${esc(it.role || it.title || '未命名条目')}</span>
@@ -299,8 +449,13 @@
               <div class="field"><label>结束</label>
                 <input type="text" data-bind="sections.${i}.items.${j}.end" value="${esc(it.end)}" placeholder="至今"></div>
             </div>
-            <div class="field"><label>描述 <span class="hint">（每行一条，自动排成要点）</span></label>
-              <textarea rows="4" data-bind="sections.${i}.items.${j}.desc">${esc(it.desc)}</textarea></div>
+            <div class="field"><label>描述 <span class="hint">（加粗 / 斜体 / 下划线 / 列表）</span></label>
+              <div class="rich-wrap">
+                ${richTools(path)}
+                <div class="rich-edit" contenteditable="true" spellcheck="false"
+                  data-rich="${path}" data-ph="写点什么…">${descToHtml(it.desc)}</div>
+              </div>
+            </div>
           </div>`;
         });
         html += `<div class="add-row"><button class="chip-btn" data-add-item="${s.id}">+ ${t.add}</button></div>`;
@@ -339,37 +494,66 @@
       .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
   }
 
-  /* ---------------- 顶部工具条（模板 / 配色） ---------------- */
+  /* ---------------- 顶部工具条（版式 / 配色 / 密度） ---------------- */
   function renderBar() {
-    $('#templateGroup').innerHTML = '<span class="lbl">模板</span>' + TEMPLATES.map((t) =>
-      `<button class="mini ${state.theme.template === t.id ? 'on' : ''}" data-tpl="${t.id}"
-        style="${state.theme.template === t.id ? 'border-color:#9db6f7;background:#f2f6ff;color:#2049b8' : ''}">${t.name}</button>`
+    $('#templateGroup').innerHTML = '<span class="lbl">版式</span>' + TEMPLATES.map((t) =>
+      `<button class="mini ${state.theme.template === t.id ? 'on' : ''}" data-tpl="${t.id}">${t.name}</button>`
     ).join('');
 
     $('#themeGroup').innerHTML = '<span class="lbl">配色</span>' + Object.keys(THEMES).map((k) =>
       `<button class="swatch ${state.theme.color === k ? 'on' : ''}" data-color="${k}"
         title="${THEMES[k].name}" style="background:${THEMES[k].ac}"></button>`
     ).join('');
+
+    const cur = currentDensity();
+    $('#densityGroup').innerHTML = '<span class="lbl">密度</span>' + Object.keys(DENSITY).map((k) =>
+      `<button class="mini ${cur === k ? 'on' : ''}" data-density="${k}" title="一键套用「${DENSITY[k].name}」的字号与间距">${DENSITY[k].name}</button>`
+    ).join('');
+
     $('#zoomVal').textContent = Math.round(zoom * 100) + '%';
+  }
+
+  // 当前排版数值与哪个预设完全一致（不一致就都不高亮）。
+  function currentDensity() {
+    for (const k of Object.keys(DENSITY)) {
+      const d = DENSITY[k];
+      if (DENSITY_KEYS.every((n) => Math.abs(Number(state.layout[n]) - d[n]) < 0.001)) return k;
+    }
+    return '';
   }
 
   /* ---------------- 预览渲染 ---------------- */
   function applyTheme() {
     const t = THEMES[state.theme.color] || THEMES.blue;
+    const L = state.layout;
     const page = $('#page');
     page.style.setProperty('--ac', t.ac);
     page.style.setProperty('--ac-soft', t.soft);
     page.style.setProperty('--ac-line', t.line);
     page.style.setProperty('--ac-deep', t.deep);
+    page.style.setProperty('--fs-body', L.fsBody + 'px');
+    page.style.setProperty('--fs-head', L.fsHead + 'px');
+    page.style.setProperty('--lh-body', String(L.lhBody));
+    page.style.setProperty('--gap-sec', L.gapSec + 'px');
+    page.style.setProperty('--gap-item', L.gapItem + 'px');
+    page.style.setProperty('--pad-t', L.padT + 'px');
+    page.style.setProperty('--pad-r', L.padR + 'px');
+    page.style.setProperty('--pad-b', L.padB + 'px');
+    page.style.setProperty('--pad-l', L.padL + 'px');
+    page.setAttribute('data-bul', L.bullet);
     page.className = 'page tpl-' + state.theme.template;
   }
 
-  function metaItems(m) {
-    const list = [
-      ['手机', m.phone], ['邮箱', m.email], ['城市', m.city],
-      ['性别', m.gender], ['出生', m.birth], ['经验', m.years], ['主页', m.website]
-    ];
-    return list.filter((x) => x[1] && String(x[1]).trim());
+  function metaItems() {
+    const colon = state.layout.showLabel ? state.layout.colon : '';
+    return metaFieldsOf().filter((f) => {
+      const v = state.meta[f.key];
+      return f.show && v != null && String(v).trim();
+    }).map((f) => ({
+      label: state.layout.showLabel ? f.label : '',
+      colon: colon,
+      value: String(state.meta[f.key]).trim()
+    }));
   }
 
   function renderSection(s) {
@@ -378,7 +562,7 @@
 
     if (t.kind === 'items') {
       body = s.items.filter(itemHasContent).map((it) => {
-        const lines = String(it.desc || '').split(/\r?\n/).map((x) => x.trim()).filter(Boolean);
+        const rich = descToHtml(it.desc);
         return `<div class="item">
           <div class="item-top">
             <span class="org">${esc(it.role)}</span>
@@ -386,9 +570,7 @@
             <span class="role">${esc(it.title)}</span>
             ${it.start || it.end ? `<span class="pin"></span><span class="date">${esc(it.start)}${it.start && it.end ? ' — ' : ''}${esc(it.end)}</span>` : ''}
           </div>
-          ${lines.length > 1
-            ? `<ul class="bl">${lines.map((l) => `<li>${esc(l)}</li>`).join('')}</ul>`
-            : lines.length === 1 ? `<div class="plain">${esc(lines[0])}</div>` : ''}
+          ${rich ? `<div class="rich">${rich}</div>` : ''}
         </div>`;
       }).join('');
     } else if (t.kind === 'tags') {
@@ -406,8 +588,14 @@
     </section>`;
   }
 
+  // 判断条目是否有内容。desc 是富文本 HTML，必须先剥掉标签再看有没有文字，
+  // 否则只有空 <ul><li></li></ul> 的条目也会被渲染出来。
   function itemHasContent(it) {
-    return ['role', 'title', 'desc'].some((k) => String(it[k] || '').trim());
+    return ['role', 'title', 'desc'].some((k) => String(it[k] || '').replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim());
+  }
+
+  function isTwoCol() {
+    return state.theme.template === 'modern' || state.theme.template === 'accent';
   }
 
   function renderPage() {
@@ -430,21 +618,23 @@
       <div class="rhead-info">
         <h1>${esc(m.name || '你的名字')}</h1>
         ${m.job ? `<div class="job">${esc(m.job)}</div>` : ''}
-        <div class="meta">${metaItems(m).map((x) => `<span><i></i>${esc(x[1])}</span>`).join('')}</div>
+        ${metaItems().length ? `<div class="meta">${metaItems().map((x) =>
+          `<span><i></i>${x.label ? `<span class="k">${esc(x.label)}</span>${esc(x.colon)}` : ''}${esc(x.value)}</span>`
+        ).join('')}</div>` : ''}
       </div>
     </div>`;
 
-    const single = state.theme.template === 'classic' || state.theme.template === 'compact';
     let bodyHtml;
-    if (single) {
-      bodyHtml = `<div class="rbody">${state.sections.map(renderSection).join('')}</div>`;
-    } else {
+    if (isTwoCol()) {
       const mains = state.sections.filter((s) => s.col !== 'side');
       const sides = state.sections.filter((s) => s.col === 'side');
-      bodyHtml = `<div class="rbody">
+      const cls = 'rbody' + (state.layout.sideLeft ? ' side-left' : '');
+      bodyHtml = `<div class="${cls}">
         <div class="rcol-main">${mains.map(renderSection).join('')}</div>
         ${sides.length ? `<div class="rcol-side">${sides.map(renderSection).join('')}</div>` : ''}
       </div>`;
+    } else {
+      bodyHtml = `<div class="rbody">${state.sections.map(renderSection).join('')}</div>`;
     }
 
     page.innerHTML = head + bodyHtml;
@@ -516,9 +706,55 @@
 
     box.addEventListener('input', (e) => {
       const el = e.target;
+
+      // 全局排版数值
+      const lay = el.dataset.layout;
+      if (lay) {
+        const raw = parseFloat(el.value);
+        if (!isFinite(raw)) return;
+        const v = clampLayout(lay, raw);
+        state.layout[lay] = v;
+        // 超出允许区间时把输入框纠正回来，避免显示值与实际生效值不一致
+        if (v !== raw) el.value = v;
+        markDirty();
+        renderBar();       // 密度高亮可能变化
+        schedulePreview();
+        return;
+      }
+
+      // 字段名（可改名）
+      const mfl = el.dataset.mfLabel;
+      if (mfl !== undefined) {
+        metaFieldsOf()[+mfl].label = el.value;
+        markDirty();
+        schedulePreview();
+        return;
+      }
+
+      // 富文本描述
+      const rich = el.dataset.rich;
+      if (rich) {
+        setPath(state, rich, el.innerHTML);
+        markDirty();
+        schedulePreview();
+        return;
+      }
+
       const path = el.dataset.bind;
       if (!path) return;
       setPath(state, path, el.value);
+      // 「字段名与显示」那一排里的当前值是静态快照，改上面的输入框时顺手刷新它，
+      // 否则用户会看到名字改了、后面的示例值还是旧的。
+      const mk = /^meta\.([a-zA-Z]+)$/.exec(path);
+      if (mk) {
+        const k = metaFieldsOf().findIndex((f) => f.key === mk[1]);
+        if (k >= 0) {
+          const cell = box.querySelector(`[data-mf-label="${k}"]`);
+          const row = cell && cell.parentElement;
+          const val = row && row.querySelector('.mf-val');
+          if (val) val.textContent = el.value;
+        }
+      }
       markDirty();
       schedulePreview();
       // 同步折叠面板上的标题文字（只针对模块标题，不碰条目里的「职位」字段）
@@ -529,9 +765,95 @@
           const head = box.querySelector(`[data-card="${sec.id}"] .blk-head .t`);
           if (head) {
             const t = SEC_TYPES[sec.type] || SEC_TYPES.custom;
-            head.innerHTML = `<span class="idx">${i + 2}</span>${esc(sec.title || t.name)}`;
+            head.innerHTML = `<span class="idx">${i + 3}</span>${esc(sec.title || t.name)}`;
           }
         }
+      }
+    });
+
+    // 复选框 / 下拉框
+    box.addEventListener('change', (e) => {
+      const el = e.target;
+
+      if (el.dataset.mfShow !== undefined) {
+        metaFieldsOf()[+el.dataset.mfShow].show = !!el.checked;
+        markDirty(); schedulePreview();
+        return;
+      }
+      if (el.hasAttribute('data-colon')) {
+        state.layout.colon = COLONS.indexOf(el.value) >= 0 ? el.value : '：';
+        markDirty(); schedulePreview();
+        return;
+      }
+      if (el.hasAttribute('data-bul')) {
+        state.layout.bullet = BULLETS.some((b) => b.id === el.value) ? el.value : 'diamond';
+        markDirty(); schedulePreview();
+        return;
+      }
+      if (el.hasAttribute('data-side')) {
+        state.layout.sideLeft = !!el.checked;
+        markDirty(); schedulePreview();
+        return;
+      }
+      if (el.hasAttribute('data-meta-label')) {
+        state.layout.showLabel = !!el.checked;
+        markDirty(); schedulePreview();
+        return;
+      }
+      // 模块位置（主栏 / 辅栏）
+      if (el.dataset.bind && /\.col$/.test(el.dataset.bind)) {
+        setPath(state, el.dataset.bind, el.value === 'side' ? 'side' : 'main');
+        markDirty(); schedulePreview();
+      }
+    });
+
+    // 富文本工具条：必须拦掉 mousedown，否则按钮抢走焦点、选区丢失。
+    box.addEventListener('mousedown', (e) => {
+      const btn = e.target.closest('[data-rt]');
+      if (!btn) return;
+      e.preventDefault();
+      const wrapEl = btn.closest('.rich-wrap');
+      const ed = wrapEl && wrapEl.querySelector('.rich-edit');
+      if (!ed) return;
+      if (ed.focus) ed.focus();
+      const map = {
+        bold: 'bold', italic: 'italic', underline: 'underline',
+        ul: 'insertUnorderedList', ol: 'insertOrderedList'
+      };
+      const cmd = map[btn.dataset.rt];
+      try {
+        if (cmd && document.execCommand) document.execCommand(cmd, false, null);
+      } catch (err) { /* 老浏览器不支持就算了 */ }
+      const path = ed.dataset.rich;
+      if (path) {
+        setPath(state, path, ed.innerHTML);
+        markDirty();
+        schedulePreview();
+      }
+    });
+
+    // 粘贴：只接受纯文本，多行自动转成无序列表，避免把外部样式带进来。
+    box.addEventListener('paste', (e) => {
+      const ed = e.target.closest && e.target.closest('[data-rich]');
+      if (!ed) return;
+      e.preventDefault();
+      const text = (e.clipboardData || window.clipboardData || {}).getData
+        ? (e.clipboardData || window.clipboardData).getData('text/plain')
+        : '';
+      if (!text) return;
+      const lines = String(text).split(/\r?\n/).map((x) => x.trim()).filter(Boolean);
+      if (!lines.length) return;
+      const html = lines.length === 1
+        ? esc(lines[0])
+        : '<ul>' + lines.map((l) => '<li>' + esc(l) + '</li>').join('') + '</ul>';
+      try {
+        if (document.execCommand) document.execCommand('insertHTML', false, html);
+      } catch (err) { /* ignore */ }
+      const path = ed.dataset.rich;
+      if (path) {
+        setPath(state, path, ed.innerHTML);
+        markDirty();
+        schedulePreview();
       }
     });
 
@@ -565,6 +887,16 @@
         toggle.parentElement.classList.toggle('open');
       }
     });
+  }
+
+  function clampLayout(key, v) {
+    const R = {
+      fsBody: [9, 20], fsHead: [10, 26], lhBody: [1.2, 2.6],
+      gapSec: [0, 60], gapItem: [0, 40],
+      padT: [0, 140], padR: [0, 140], padB: [0, 140], padL: [0, 140]
+    }[key];
+    if (!R) return v;
+    return Math.min(R[1], Math.max(R[0], Math.round(v * 100) / 100));
   }
 
   function addSection(type) {
@@ -745,6 +1077,7 @@
         if (!confirm('导入将覆盖当前简历内容，确定吗？')) return;
         state = normalize(data);
         openCards.clear();
+        openCards.add('__meta');
         markDirty(); renderEditor(); renderPage();
         await save(true);
         toast('导入成功');
@@ -754,13 +1087,44 @@
     });
   }
 
+  /* ---------------- 数据规范化 ---------------- */
   function normalize(d) {
     const base = defaultResume();
     const out = {
       meta: Object.assign({}, base.meta, d.meta || {}),
+      metaFields: [],
       theme: Object.assign({}, base.theme, d.theme || {}),
+      layout: Object.assign({}, base.layout, d.layout || {}),
       sections: []
     };
+
+    // 字段名：按默认顺序合并，保留用户改名与显示开关
+    const src = Array.isArray(d.metaFields) ? d.metaFields : [];
+    const byKey = {};
+    src.forEach((f) => { if (f && f.key) byKey[f.key] = f; });
+    out.metaFields = META_FIELDS.map((f) => {
+      const s = byKey[f.key] || {};
+      return {
+        key: f.key,
+        label: String(s.label == null ? f.label : s.label),
+        show: s.show === undefined ? true : !!s.show
+      };
+    });
+    // 保留用户自定义、但不在默认列表里的字段（值仍存在 meta 上）
+    src.forEach((f) => {
+      if (f && f.key && !META_FIELDS.some((x) => x.key === f.key)) {
+        out.metaFields.push({ key: f.key, label: String(f.label || f.key), show: f.show !== false });
+      }
+    });
+
+    // 全局排版：逐项校验，非法值回落默认
+    const L = out.layout;
+    DENSITY_KEYS.forEach((k) => { L[k] = clampLayout(k, Number(L[k])); if (!isFinite(L[k])) L[k] = base.layout[k]; });
+    if (!BULLETS.some((b) => b.id === L.bullet)) L.bullet = 'diamond';
+    if (COLONS.indexOf(L.colon) < 0) L.colon = '：';
+    L.showLabel = L.showLabel !== false;
+    L.sideLeft = L.sideLeft === true;
+
     (d.sections || []).forEach((s) => {
       const type = SEC_TYPES[s.type] ? s.type : 'custom';
       const t = SEC_TYPES[type];
@@ -768,7 +1132,9 @@
       if (t.kind === 'items') {
         sec.items = (s.items || []).map((it) => ({
           id: it.id || uid(), role: it.role || '', title: it.title || '',
-          start: it.start || '', end: it.end || '', desc: it.desc || ''
+          start: it.start || '', end: it.end || '',
+          // 旧存档的 desc 是纯文本，descToHtml 会在渲染时自动转成列表
+          desc: sanitizeHtml(descToHtml(it.desc))
         }));
       } else if (t.kind === 'tags') {
         sec.tags = s.tags || '';
@@ -779,6 +1145,16 @@
     });
     if (!out.sections.length) out.sections = base.sections;
     if (!THEMES[out.theme.color]) out.theme.color = 'blue';
+
+    // 旧版本的 compact 是「模板」，现在拆成了独立密度，这里做一次平滑迁移
+    if (out.theme.template === 'compact') {
+      out.theme.template = 'classic';
+      out.layout = Object.assign({}, DENSITY.compact);
+      out.layout.colon = L.colon;
+      out.layout.bullet = L.bullet;
+      out.layout.showLabel = L.showLabel;
+      out.layout.sideLeft = L.sideLeft;
+    }
     if (!TEMPLATES.some((x) => x.id === out.theme.template)) out.theme.template = 'modern';
     return out;
   }
@@ -804,7 +1180,7 @@
     const oldGuides = guides ? guides.style.display : '';
     if (guides) guides.style.display = 'none';
 
-    // 关掉 .16s 的过渡动画，否则 60ms 后 html2canvas 拍到的还是缩放中间态。
+    // 关掉 .16s 的过渡动画，否则 80ms 后 html2canvas 拍到的还是缩放中间态。
     // 同时把 fitPage() 写进去的「缩放后宽高」清掉，否则外层容器会窄于页面本体。
     wrap.style.transition = 'none';
     wrap.style.transform = 'none';
@@ -906,8 +1282,8 @@
 
   /* ---------------- 打印模式 ---------------- */
   // 仅用于「在浏览器标签页里直接看 / 手动 Ctrl+P」的场景。
-  // 注意：必须限定在 screen 媒体下，否则会覆盖 style.css 里 @media print 的纸张边距，
-  // 导致 headless 打印 / 另存为 PDF 时内容贴边。
+  // 注意：必须限定在 screen 媒体下，否则会覆盖 style.css 里 @media print 的纸张规则，
+  // 导致 headless 打印 / 另存为 PDF 时内容贴边或边距被改掉。
   function printMode() {
     document.body.classList.add('print-mode');
     document.title = (state.meta.name || '简历') + ' - 简历';
@@ -917,8 +1293,8 @@
       .app{display:block;height:auto}
       .workspace{display:block}
       .stage-scroll{display:block;overflow:visible;padding:0;background:#fff}
-      .paper-wrap{transform:none!important;height:auto!important}
-      .page{box-shadow:none!important;margin:0 auto!important;width:210mm;min-height:0;padding:12mm 13mm;box-sizing:border-box}
+      .paper-wrap{transform:none!important;height:auto!important;width:auto!important}
+      .page{box-shadow:none!important;margin:0 auto!important;width:210mm;min-height:0;box-sizing:border-box}
       .avatar .tip{display:none}
       .pg-guides{display:none!important}
     }`;
@@ -936,6 +1312,16 @@
       if (tpl) {
         state.theme.template = tpl.dataset.tpl;
         markDirty(); renderBar(); renderPage(); renderEditor();
+        return;
+      }
+      const den = e.target.closest('[data-density]');
+      if (den) {
+        const d = DENSITY[den.dataset.density];
+        if (d) {
+          DENSITY_KEYS.forEach((k) => { state.layout[k] = d[k]; });
+          markDirty(); renderBar(); renderPage(); renderEditor();
+          toast('已套用「' + d.name + '」排版');
+        }
         return;
       }
       const color = e.target.closest('[data-color]');
@@ -983,7 +1369,7 @@
     }
 
     openCards.add('__meta');
-    openCards.add(state.sections.length ? state.sections[0].id : '__meta');
+    openCards.add('__layout');
     renderEditor();
     renderPage();
     fitMode = true;
